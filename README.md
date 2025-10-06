@@ -11,6 +11,8 @@ A web application for linking external organizations in Elsevier Pure to [ROR (R
 - **Gamification**: Earn points for linking organizations, with levels and progress tracking
 - **Link History**: Track your linking activity with timestamps and scores
 - **Smart Filtering**: Only shows organizations that are in "forApproval" or "approved" status and don't already have ROR identifiers
+  
+<img width="1178" height="906" alt="Skærmbillede 2025-10-06 kl  21 13 33" src="https://github.com/user-attachments/assets/1fb91c0b-efbc-4323-b939-12335b8a885e" />
 
 ## How It Works
 
