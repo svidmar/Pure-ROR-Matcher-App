@@ -61,6 +61,16 @@ interface RorOrg {
   links?: string[];
   types?: string[];
   score?: number;
+  locations?: {
+    geonames_details?: {
+      country_name?: string;
+      country_code?: string;
+      continent_name?: string;
+      country_subdivision_name?: string;
+      name?: string;
+    };
+    geonames_id?: number;
+  }[];
 }
 
 type Toast = { type: "success" | "error"; message: string } | null;
@@ -284,9 +294,28 @@ export default function App() {
 
     // chosen first, then by score
     items.sort((a: any, b: any) => Number(!!b.chosen) - Number(!!a.chosen) || b.scoreLocal - a.scoreLocal);
+    
+    // Fetch full location details for each candidate
+    const itemsWithLocations = await Promise.all(
+      items.slice(0, 10).map(async (item) => {
+        try {
+          const rorId = item.id.replace('https://ror.org/', '');
+          const detailUrl = `https://api.ror.org/v2/organizations/${rorId}`;
+          const detailRes = await fetch(detailUrl, { headers: { Accept: "application/json" } });
+          if (detailRes.ok) {
+            const detailData = await detailRes.json();
+            return { ...item, locations: detailData.locations };
+          }
+        } catch (e) {
+          console.warn(`Failed to fetch location for ${item.id}:`, e);
+        }
+        return item;
+      })
+    );
+    
     // Preselect best if strong
-    if ((items[0]?.scoreLocal ?? 0) >= 0.7) setSelectedIdx(0);
-    return items.slice(0, 10);
+    if ((itemsWithLocations[0]?.scoreLocal ?? 0) >= 0.7) setSelectedIdx(0);
+    return itemsWithLocations;
   };
 
   /************* actions *************/
@@ -679,12 +708,6 @@ export default function App() {
                       {aliases.length ? (
                         <span className="opacity-70"> (aliases: {aliases.join(", ")})</span>
                       ) : null}
-                      {country ? (
-                        <span>
-                          {" "}
-                          — <span className="opacity-70">{country}</span>
-                        </span>
-                      ) : null}
                     </div>
                     <label className="flex items-center gap-1 text-sm">
                       <input
@@ -695,6 +718,25 @@ export default function App() {
                       />{" "}
                       Select
                     </label>
+                  </div>
+                  
+                  {/* Location comparison */}
+                  <div className="mt-2 flex flex-wrap gap-4 text-xs">
+                    {org?.address?.country?.term?.en_GB && (
+                      <div className="px-2 py-1 rounded bg-blue-500/15 border border-blue-400/30">
+                        <span className="opacity-70">Pure country:</span>{" "}
+                        <span className="font-medium">{org.address.country.term.en_GB}</span>
+                      </div>
+                    )}
+                    {c.locations?.[0]?.geonames_details?.country_name && (
+                      <div className="px-2 py-1 rounded bg-emerald-500/15 border border-emerald-400/30">
+                        <span className="opacity-70">ROR location:</span>{" "}
+                        <span className="font-medium">{c.locations[0].geonames_details.country_name}</span>
+                        {c.locations[0].geonames_details.country_subdivision_name && (
+                          <span className="opacity-70">, {c.locations[0].geonames_details.country_subdivision_name}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-1 text-xs opacity-80 space-x-3">
